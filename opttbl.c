@@ -94,6 +94,9 @@ public int hilite_search;       /* Highlight matched search patterns? */
 #endif
 
 public int less_is_more = 0;    /* Make compatible with POSIX more */
+#if ALIGN_PAGE
+public int align_page = 0;      /* Align search results to page boundary */
+#endif
 
 /*
  * Long option names.
@@ -189,6 +192,9 @@ static struct optname proc_return_optname = { "proc-return", NULL };
 static struct optname match_shift_optname = { "match-shift", NULL };
 static struct optname first_cmd_at_prompt_optname = { "cmd", NULL };
 static struct optname autosave_optname = { "autosave", NULL };
+#if ALIGN_PAGE
+static struct optname align_page_optname = { "align-page", NULL };
+#endif
 #if LESSTEST
 static struct optname ttyin_name_optname = { "tty",              NULL };
 #endif /*LESSTEST*/
@@ -769,6 +775,16 @@ static struct loption option[] =
 		O_STRING|O_INIT_HANDLER, 0, NULL, opt_autosave,
 		{ "Autosave actions: ", "s", NULL }
 	},
+#if ALIGN_PAGE
+	{ OLETTER_NONE, &align_page_optname,
+		O_BOOL, OPT_OFF, &align_page, NULL,
+		{
+			"Don't align search results",
+			"Align search results to page boundary",
+			NULL
+		}
+	},
+#endif
 #if LESSTEST
 	{ OLETTER_NONE, &ttyin_name_optname,
 		O_STRING|O_NO_TOGGLE, 0, NULL, opt_ttyin_name,

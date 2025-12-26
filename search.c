@@ -35,6 +35,9 @@ extern POSITION end_attnpos;
 extern int utf_mode;
 extern int sc_width;
 extern int sc_height;
+#if ALIGN_PAGE
+extern int align_page;
+#endif
 extern int hshift;
 extern int match_shift;
 extern int nosearch_header_lines;
@@ -1120,7 +1123,11 @@ public POSITION search_pos(int search_type)
 	{
 		lbool add_one = FALSE;
 
-		if (how_search == OPT_ON)
+		if (how_search == OPT_ON
+#if ALIGN_PAGE
+		    || (align_page && (search_type & SRCH_AFTER_TARGET))
+#endif
+		   )
 		{
 			/*
 			 * Search does not include current screen.
@@ -2176,7 +2183,21 @@ public int search(int search_type, constant char *pattern, int n)
 		if (lastlinepos != NULL_POSITION)
 			jump_loc(lastlinepos, BOTTOM);
 		else if (pos != opos)
+		{
+#if ALIGN_PAGE
+			if (align_page)
+			{
+				/*
+				 * Snap to page boundary.
+				 */
+				int snap = sc_height - 1;
+				LINENUM match_linenum = find_linenum(pos);
+				LINENUM page_start = ((match_linenum - 1) / snap) * snap + 1;
+				pos = find_pos(page_start);
+			}
+#endif
 			jump_loc(pos, jump_sline);
+		}
 	}
 
 #if HILITE_SEARCH

@@ -547,6 +547,12 @@ AH_TOP([
 #define HILITE_SEARCH   1
 
 /*
+ * ALIGN_PAGE is 1 if you wish to have the --align-page option
+ * to align search results to page boundaries.
+ */
+#define ALIGN_PAGE      1
+
+/*
  * EDITOR is 1 if you wish to allow editor invocation (the "v" command).
  * (This is possible only if your system supplies the system() function.)
  * EDIT_PGM is the name of the (default) editor to be invoked.
