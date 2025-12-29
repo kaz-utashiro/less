@@ -37,6 +37,9 @@ extern POSITION end_attnpos;
 extern int utf_mode;
 extern int sc_width;
 extern int sc_height;
+extern int snap_line;
+extern int snap_line_set;
+#define get_snap_line() ((snap_line <= 0) ? sc_height + snap_line : snap_line)
 extern int hshift;
 extern int match_shift;
 extern int nosearch_header_lines;
@@ -1190,6 +1193,28 @@ public POSITION search_pos(int search_type)
 		pos = position(sindex);
 		if (add_one)
 			pos = forw_raw_line(pos, NULL, NULL);
+
+		/*
+		 * If snap_line is set and this is a repeat search,
+		 * start from the next/prev snap boundary instead.
+		 */
+		if (snap_line_set && (search_type & SRCH_AFTER_TARGET))
+		{
+			int snap = get_snap_line();
+			if (snap > 0)
+			{
+				LINENUM top_linenum = find_linenum(position(0));
+				LINENUM boundary;
+				if (search_type & SRCH_FORW)
+					boundary = ((top_linenum - 1) / snap + 1) * snap + 1;
+				else
+				{
+					boundary = ((top_linenum - 1) / snap) * snap;
+					if (boundary < 1) boundary = 1;
+				}
+				pos = find_pos(boundary);
+			}
+		}
 	}
 
 	/*
@@ -2204,7 +2229,20 @@ public int search(int search_type, constant char *pattern, int n)
 		if (lastlinepos != NULL_POSITION)
 			jump_loc(lastlinepos, BOTTOM);
 		else if (pos != opos)
+		{
+			if (snap_line_set)
+			{
+				int snap = get_snap_line();
+				if (snap > 0)
+				{
+					LINENUM boundary = ((find_linenum(pos) - 1) / snap) * snap + 1;
+					POSITION bpos = find_pos(boundary);
+					if (bpos != NULL_POSITION)
+						pos = bpos;
+				}
+			}
 			jump_loc(pos, jump_sline);
+		}
 	}
 
 #if HILITE_SEARCH
