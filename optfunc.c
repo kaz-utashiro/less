@@ -75,6 +75,8 @@ extern POSITION header_start_pos;
 extern char *init_header;
 extern char *first_cmd_at_prompt;
 extern char *autosave;
+extern int snap_line;
+extern int snap_line_set;
 #if LOGFILE
 extern char *namelogfile;
 extern lbool force_logfile;
@@ -494,6 +496,30 @@ public void opt_autosave(int type, constant char *s)
 	case QUERY:
 		parg.p_string = (autosave != NULL) ? autosave : "-";
 		error("Autosave actions: %s", &parg);
+		break;
+	}
+}
+
+/*
+ * Handler for --snap-line option.
+ * 0: screen height
+ * Positive N: N lines
+ * Negative N: screen height + N
+ */
+public void opt_snap_line(int type, constant char *s)
+{
+	PARG parg;
+
+	switch (type)
+	{
+	case INIT:
+	case TOGGLE:
+		snap_line_set = 1;
+		snap_line = (s != NULL) ? atoi(s) : 0;
+		break;
+	case QUERY:
+		parg.p_int = snap_line;
+		error("Snap line count: %d", &parg);
 		break;
 	}
 }

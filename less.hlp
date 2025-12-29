@@ -276,6 +276,8 @@
                   Set default options for every search.
                 --show-preproc-errors
                   Display a message if preprocessor exits with an error status.
+                --snap-line=[_N]
+                  Snap search results to _N-line boundaries (0 or negative: height+N).
                 --proc-backspace
                   Process backspaces for bold/underline.
                 --PROC-BACKSPACE
