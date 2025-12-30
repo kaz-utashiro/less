@@ -91,6 +91,7 @@ public char *first_cmd_at_prompt = NULL; /* Command to exec before first prompt 
 public char *autosave;          /* Actions which do autosave of history file */
 public int snap_line = 0;       /* Snap search results to N-line boundaries */
 public int snap_line_set = 0;   /* Whether snap_line option was specified */
+public char *snap_line_pattern = NULL; /* Pattern for snap boundary */
 #if HILITE_SEARCH
 public int hilite_search;       /* Highlight matched search patterns? */
 #endif
