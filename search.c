@@ -39,6 +39,7 @@ extern int sc_width;
 extern int sc_height;
 extern int snap_line;
 extern int snap_line_set;
+extern char *snap_line_pattern;
 #define get_snap_line() ((snap_line <= 0) ? sc_height + snap_line : snap_line)
 extern int hshift;
 extern int match_shift;
@@ -148,6 +149,10 @@ struct pattern_info {
 static struct pattern_info search_info;
 public int is_caseless;
 
+/* Snap pattern matching */
+static struct pattern_info snap_pattern_info;
+static int snap_pattern_compiled = 0;
+
 /*
  * Are there any uppercase letters in this string?
  */
@@ -225,6 +230,98 @@ static void init_pattern(struct pattern_info *info)
 public void init_search(void)
 {
 	init_pattern(&search_info);
+}
+
+/*
+ * Compile the snap pattern (called once when needed).
+ */
+static int compile_snap_pattern(void)
+{
+	if (snap_line_pattern == NULL)
+		return 0;
+	if (snap_pattern_compiled)
+		return 1;
+
+	init_pattern(&snap_pattern_info);
+	if (set_pattern(&snap_pattern_info, snap_line_pattern, 0, 1) < 0)
+		return 0;
+	if (compile_pattern(snap_line_pattern, 0, 0, &snap_pattern_info.compiled) < 0)
+		return 0;
+
+	snap_pattern_compiled = 1;
+	return 1;
+}
+
+/*
+ * Check if a line matches the snap pattern.
+ */
+static int line_matches_snap_pattern(constant char *line, size_t line_len)
+{
+	constant char *sp, *ep;
+
+	if (!snap_pattern_compiled && !compile_snap_pattern())
+		return 0;
+
+	return match_pattern(info_compiled(&snap_pattern_info), snap_pattern_info.text,
+	                     line, line_len, 0, &sp, &ep, 1, 0, snap_pattern_info.search_type);
+}
+
+/*
+ * Search backward for a line matching the snap pattern.
+ * If check_curr is true, check the line at pos first.
+ * Returns the position of the matching line, or NULL_POSITION if not found.
+ */
+static POSITION search_snap_boundary_backward(POSITION pos, int check_curr)
+{
+	constant char *line;
+	size_t line_len;
+	POSITION curr = pos;
+
+	if (check_curr && forw_raw_line(curr, &line, &line_len) != NULL_POSITION)
+	{
+		if (line_matches_snap_pattern(line, line_len))
+			return curr;
+	}
+
+	while ((curr = back_raw_line(curr, &line, &line_len)) != NULL_POSITION)
+	{
+		if (line_matches_snap_pattern(line, line_len))
+			return curr;
+	}
+
+	return NULL_POSITION;
+}
+
+/*
+ * Search forward for a line matching the snap pattern.
+ * Skips the line at pos.
+ */
+static POSITION search_snap_boundary_forward(POSITION pos)
+{
+	constant char *line;
+	size_t line_len;
+	POSITION curr, next;
+
+	for (curr = forw_raw_line(pos, &line, &line_len); curr != NULL_POSITION; curr = next)
+	{
+		next = forw_raw_line(curr, &line, &line_len);
+		if (next == NULL_POSITION)
+			break;
+		if (line_matches_snap_pattern(line, line_len))
+			return curr;
+	}
+
+	return NULL_POSITION;
+}
+
+/*
+ * Find the snap boundary for a given position.
+ * Searches backward from pos; returns beginning of file if no match found.
+ */
+static POSITION find_snap_boundary_pattern(POSITION pos)
+{
+	POSITION boundary = search_snap_boundary_backward(pos, 1);
+	return (boundary != NULL_POSITION) ? boundary : (POSITION) 0;
 }
 
 /*
@@ -1200,20 +1297,37 @@ public POSITION search_pos(int search_type)
 		 */
 		if (snap_line_set && (search_type & SRCH_AFTER_TARGET))
 		{
-			int snap = get_snap_line();
-			if (snap > 0)
+			POSITION screen_top = position(0);
+			POSITION boundary = NULL_POSITION;
+
+			if (snap_line_pattern != NULL)
 			{
-				LINENUM top_linenum = find_linenum(position(0));
-				LINENUM boundary;
+				/* Pattern-based snapping */
 				if (search_type & SRCH_FORW)
-					boundary = ((top_linenum - 1) / snap + 1) * snap + 1;
+					boundary = search_snap_boundary_forward(screen_top);
 				else
-				{
-					boundary = ((top_linenum - 1) / snap) * snap;
-					if (boundary < 1) boundary = 1;
-				}
-				pos = find_pos(boundary);
+					boundary = search_snap_boundary_backward(screen_top, 0);
 			}
+			else
+			{
+				/* Line-count based snapping */
+				int snap = get_snap_line();
+				if (snap > 0)
+				{
+					LINENUM top_linenum = find_linenum(screen_top);
+					LINENUM bline;
+					if (search_type & SRCH_FORW)
+						bline = ((top_linenum - 1) / snap + 1) * snap + 1;
+					else
+					{
+						bline = ((top_linenum - 1) / snap) * snap;
+						if (bline < 1) bline = 1;
+					}
+					boundary = find_pos(bline);
+				}
+			}
+			if (boundary != NULL_POSITION)
+				pos = boundary;
 		}
 	}
 
@@ -2237,13 +2351,24 @@ public int search(int search_type, constant char *pattern, int n)
 		{
 			if (snap_line_set)
 			{
-				int snap = get_snap_line();
-				if (snap > 0)
+				if (snap_line_pattern != NULL)
 				{
-					LINENUM boundary = ((find_linenum(pos) - 1) / snap) * snap + 1;
-					POSITION bpos = find_pos(boundary);
+					/* Pattern-based snapping */
+					POSITION bpos = find_snap_boundary_pattern(pos);
 					if (bpos != NULL_POSITION)
 						pos = bpos;
+				}
+				else
+				{
+					/* Line-count based snapping */
+					int snap = get_snap_line();
+					if (snap > 0)
+					{
+						LINENUM boundary = ((find_linenum(pos) - 1) / snap) * snap + 1;
+						POSITION bpos = find_pos(boundary);
+						if (bpos != NULL_POSITION)
+							pos = bpos;
+					}
 				}
 			}
 			jump_loc(pos, jump_sline);

@@ -81,6 +81,7 @@ extern char *first_cmd_at_prompt;
 extern char *autosave;
 extern int snap_line;
 extern int snap_line_set;
+extern char *snap_line_pattern;
 #if LOGFILE
 extern char *namelogfile;
 extern lbool force_logfile;
@@ -551,6 +552,7 @@ public void opt_autosave(int type, constant char *s)
  * 0: screen height
  * Positive N: N lines
  * Negative N: screen height + N
+ * /pattern: snap to lines matching pattern
  */
 public void opt_snap_line(int type, constant char *s)
 {
@@ -561,11 +563,35 @@ public void opt_snap_line(int type, constant char *s)
 	case INIT:
 	case TOGGLE:
 		snap_line_set = 1;
-		snap_line = (s != NULL) ? atoi(s) : 0;
+		if (s == NULL || *s == '\0')
+		{
+			snap_line = 0;
+			snap_line_pattern = NULL;
+		}
+		else if (*s == '/')
+		{
+			/* Pattern: skip the leading '/' */
+			snap_line_pattern = save(s + 1);
+			snap_line = 0;
+		}
+		else
+		{
+			/* Line count (including +N, -N) */
+			snap_line = atoi(s);
+			snap_line_pattern = NULL;
+		}
 		break;
 	case QUERY:
-		parg.p_int = snap_line;
-		error("Snap line count: %d", &parg);
+		if (snap_line_pattern != NULL)
+		{
+			parg.p_string = snap_line_pattern;
+			error("Snap pattern: /%s", &parg);
+		}
+		else
+		{
+			parg.p_int = snap_line;
+			error("Snap line count: %d", &parg);
+		}
 		break;
 	}
 }
