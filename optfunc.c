@@ -80,7 +80,6 @@ extern char *init_header;
 extern char *first_cmd_at_prompt;
 extern char *autosave;
 extern int snap_to;
-extern int snap_to_set;
 extern char *snap_to_pattern;
 #if LOGFILE
 extern char *namelogfile;
@@ -557,15 +556,15 @@ public void opt_autosave(int type, constant char *s)
 public void opt_snap_to(int type, constant char *s)
 {
 	PARG parg;
+	int n;
 
 	switch (type)
 	{
 	case INIT:
 	case TOGGLE:
-		snap_to_set = 1;
 		if (s == NULL || *s == '\0')
 		{
-			snap_to = 0;
+			snap_to = INT_MIN;  /* screen height */
 			snap_to_pattern = NULL;
 		}
 		else if (*s == '/')
@@ -576,8 +575,9 @@ public void opt_snap_to(int type, constant char *s)
 		}
 		else
 		{
-			/* Line count (including +N, -N) */
-			snap_to = atoi(s);
+			/* Line count (including +N, -N); 0 means screen height */
+			n = atoi(s);
+			snap_to = (n == 0) ? INT_MIN : n;
 			snap_to_pattern = NULL;
 		}
 		break;
@@ -589,7 +589,7 @@ public void opt_snap_to(int type, constant char *s)
 		}
 		else
 		{
-			parg.p_int = snap_to;
+			parg.p_int = (snap_to == INT_MIN) ? 0 : snap_to;
 			error("Snap line count: %d", &parg);
 		}
 		break;

@@ -38,9 +38,9 @@ extern int utf_mode;
 extern int sc_width;
 extern int sc_height;
 extern int snap_to;
-extern int snap_to_set;
 extern char *snap_to_pattern;
-#define get_snap_to() ((snap_to <= 0) ? sc_height + snap_to : snap_to)
+#define snap_to_set() (snap_to != 0 || snap_to_pattern != NULL)
+#define get_snap_to() ((snap_to == INT_MIN) ? sc_height : (snap_to <= 0) ? sc_height + snap_to : snap_to)
 extern int hshift;
 extern int match_shift;
 extern int nosearch_header_lines;
@@ -1293,7 +1293,7 @@ public POSITION search_pos(int search_type)
 		 * If snap_line is set and this is a repeat search,
 		 * start from the next/prev snap boundary instead.
 		 */
-		if (snap_to_set && (search_type & SRCH_AFTER_TARGET))
+		if (snap_to_set() && (search_type & SRCH_AFTER_TARGET))
 		{
 			POSITION screen_top = position(0);
 			POSITION boundary = NULL_POSITION;
@@ -2342,7 +2342,7 @@ public int search(int search_type, constant char *pattern, int n)
 			jump_loc(lastlinepos, BOTTOM);
 		else if (pos != opos)
 		{
-			if (snap_to_set)
+			if (snap_to_set())
 			{
 				if (snap_to_pattern != NULL)
 				{

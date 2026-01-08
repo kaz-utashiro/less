@@ -284,8 +284,8 @@
                   Display a message if preprocessor exits with an error status.
                 --past-eof
                   Scrolling commands continue past end of file.
-                --snap-to=[_N]
-                  Snap search results to _N-line boundaries (0 or negative: height+N).
+                --snap-to=[_N]
+                  Snap search results to _N line boundaries (0 or negative: height+_N).
                 --proc-backspace
                   Process backspaces for bold/underline.
                 --PROC-BACKSPACE
