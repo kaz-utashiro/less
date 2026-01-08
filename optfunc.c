@@ -79,9 +79,9 @@ extern POSITION header_start_pos;
 extern char *init_header;
 extern char *first_cmd_at_prompt;
 extern char *autosave;
-extern int snap_line;
-extern int snap_line_set;
-extern char *snap_line_pattern;
+extern int snap_to;
+extern int snap_to_set;
+extern char *snap_to_pattern;
 #if LOGFILE
 extern char *namelogfile;
 extern lbool force_logfile;
@@ -548,13 +548,13 @@ public void opt_autosave(int type, constant char *s)
 }
 
 /*
- * Handler for --snap-line option.
+ * Handler for --snap-to option.
  * 0: screen height
  * Positive N: N lines
  * Negative N: screen height + N
  * /pattern: snap to lines matching pattern
  */
-public void opt_snap_line(int type, constant char *s)
+public void opt_snap_to(int type, constant char *s)
 {
 	PARG parg;
 
@@ -562,34 +562,34 @@ public void opt_snap_line(int type, constant char *s)
 	{
 	case INIT:
 	case TOGGLE:
-		snap_line_set = 1;
+		snap_to_set = 1;
 		if (s == NULL || *s == '\0')
 		{
-			snap_line = 0;
-			snap_line_pattern = NULL;
+			snap_to = 0;
+			snap_to_pattern = NULL;
 		}
 		else if (*s == '/')
 		{
 			/* Pattern: skip the leading '/' */
-			snap_line_pattern = save(s + 1);
-			snap_line = 0;
+			snap_to_pattern = save(s + 1);
+			snap_to = 0;
 		}
 		else
 		{
 			/* Line count (including +N, -N) */
-			snap_line = atoi(s);
-			snap_line_pattern = NULL;
+			snap_to = atoi(s);
+			snap_to_pattern = NULL;
 		}
 		break;
 	case QUERY:
-		if (snap_line_pattern != NULL)
+		if (snap_to_pattern != NULL)
 		{
-			parg.p_string = snap_line_pattern;
+			parg.p_string = snap_to_pattern;
 			error("Snap pattern: /%s", &parg);
 		}
 		else
 		{
-			parg.p_int = snap_line;
+			parg.p_int = snap_to;
 			error("Snap line count: %d", &parg);
 		}
 		break;
