@@ -151,7 +151,6 @@ public int is_caseless;
 
 /* Snap pattern matching */
 static struct pattern_info snap_pattern_info;
-static int snap_pattern_compiled = 0;
 
 /*
  * Are there any uppercase letters in this string?
@@ -239,7 +238,7 @@ static int compile_snap_pattern(void)
 {
 	if (snap_to_pattern == NULL)
 		return 0;
-	if (snap_pattern_compiled)
+	if (!is_null_pattern(snap_pattern_info.compiled))
 		return 1;
 
 	init_pattern(&snap_pattern_info);
@@ -248,7 +247,6 @@ static int compile_snap_pattern(void)
 	if (compile_pattern(snap_to_pattern, 0, 0, &snap_pattern_info.compiled) < 0)
 		return 0;
 
-	snap_pattern_compiled = 1;
 	return 1;
 }
 
@@ -259,7 +257,7 @@ static int line_matches_snap_pattern(constant char *line, size_t line_len)
 {
 	constant char *sp, *ep;
 
-	if (!snap_pattern_compiled && !compile_snap_pattern())
+	if (is_null_pattern(snap_pattern_info.compiled) && !compile_snap_pattern())
 		return 0;
 
 	return match_pattern(info_compiled(&snap_pattern_info), snap_pattern_info.text,
