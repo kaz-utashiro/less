@@ -37,10 +37,10 @@ extern POSITION end_attnpos;
 extern int utf_mode;
 extern int sc_width;
 extern int sc_height;
-extern int snap_line;
-extern int snap_line_set;
-extern char *snap_line_pattern;
-#define get_snap_line() ((snap_line <= 0) ? sc_height + snap_line : snap_line)
+extern int snap_to;
+extern int snap_to_set;
+extern char *snap_to_pattern;
+#define get_snap_to() ((snap_to <= 0) ? sc_height + snap_to : snap_to)
 extern int hshift;
 extern int match_shift;
 extern int nosearch_header_lines;
@@ -237,15 +237,15 @@ public void init_search(void)
  */
 static int compile_snap_pattern(void)
 {
-	if (snap_line_pattern == NULL)
+	if (snap_to_pattern == NULL)
 		return 0;
 	if (snap_pattern_compiled)
 		return 1;
 
 	init_pattern(&snap_pattern_info);
-	if (set_pattern(&snap_pattern_info, snap_line_pattern, 0, 1) < 0)
+	if (set_pattern(&snap_pattern_info, snap_to_pattern, 0, 1) < 0)
 		return 0;
-	if (compile_pattern(snap_line_pattern, 0, 0, &snap_pattern_info.compiled) < 0)
+	if (compile_pattern(snap_to_pattern, 0, 0, &snap_pattern_info.compiled) < 0)
 		return 0;
 
 	snap_pattern_compiled = 1;
@@ -1295,12 +1295,12 @@ public POSITION search_pos(int search_type)
 		 * If snap_line is set and this is a repeat search,
 		 * start from the next/prev snap boundary instead.
 		 */
-		if (snap_line_set && (search_type & SRCH_AFTER_TARGET))
+		if (snap_to_set && (search_type & SRCH_AFTER_TARGET))
 		{
 			POSITION screen_top = position(0);
 			POSITION boundary = NULL_POSITION;
 
-			if (snap_line_pattern != NULL)
+			if (snap_to_pattern != NULL)
 			{
 				/* Pattern-based snapping */
 				if (search_type & SRCH_FORW)
@@ -1311,7 +1311,7 @@ public POSITION search_pos(int search_type)
 			else
 			{
 				/* Line-count based snapping */
-				int snap = get_snap_line();
+				int snap = get_snap_to();
 				if (snap > 0)
 				{
 					LINENUM top_linenum = find_linenum(screen_top);
@@ -2349,9 +2349,9 @@ public int search(int search_type, constant char *pattern, int n)
 			jump_loc(lastlinepos, BOTTOM);
 		else if (pos != opos)
 		{
-			if (snap_line_set)
+			if (snap_to_set)
 			{
-				if (snap_line_pattern != NULL)
+				if (snap_to_pattern != NULL)
 				{
 					/* Pattern-based snapping */
 					POSITION bpos = find_snap_boundary_pattern(pos);
@@ -2361,7 +2361,7 @@ public int search(int search_type, constant char *pattern, int n)
 				else
 				{
 					/* Line-count based snapping */
-					int snap = get_snap_line();
+					int snap = get_snap_to();
 					if (snap > 0)
 					{
 						LINENUM boundary = ((find_linenum(pos) - 1) / snap) * snap + 1;
