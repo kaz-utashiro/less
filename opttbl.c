@@ -94,8 +94,7 @@ public char intr_char = CONTROL('X'); /* Char to interrupt reads */
 public char *first_cmd_at_prompt = NULL; /* Command to exec before first prompt */
 public char *autosave;          /* Actions which do autosave of history file */
 public char *end_prompt;        /* Printed after clearing the prompt */
-public int snap_to = 0;         /* Snap search results to N-line boundaries */
-public int snap_to_set = 0;     /* Whether snap_to option was specified */
+public int snap_to = 0;         /* Snap search results to N-line boundaries (0=not set, INT_MIN=screen height) */
 public char *snap_to_pattern = NULL; /* Pattern for snap boundary */
 #if HILITE_SEARCH
 public int hilite_search;       /* Highlight matched search patterns? */
