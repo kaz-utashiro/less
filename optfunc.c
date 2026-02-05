@@ -79,8 +79,8 @@ extern POSITION header_start_pos;
 extern char *init_header;
 extern char *first_cmd_at_prompt;
 extern char *autosave;
-extern int snap_to;
-extern char *snap_to_pattern;
+extern int page_align;
+extern char *page_align_pattern;
 #if LOGFILE
 extern char *namelogfile;
 extern lbool force_logfile;
@@ -547,13 +547,13 @@ public void opt_autosave(int type, constant char *s)
 }
 
 /*
- * Handler for --snap-to option.
+ * Handler for --page-align option.
  * 0: screen height
  * Positive N: N lines
  * Negative N: screen height + N
- * /pattern: snap to lines matching pattern
+ * /pattern: align to lines matching pattern
  */
-public void opt_snap_to(int type, constant char *s)
+public void opt_page_align(int type, constant char *s)
 {
 	PARG parg;
 	int n;
@@ -564,33 +564,33 @@ public void opt_snap_to(int type, constant char *s)
 	case TOGGLE:
 		if (s == NULL || *s == '\0')
 		{
-			snap_to = INT_MIN;  /* screen height */
-			snap_to_pattern = NULL;
+			page_align = INT_MIN;  /* screen height */
+			page_align_pattern = NULL;
 		}
 		else if (*s == '/')
 		{
 			/* Pattern: skip the leading '/' */
-			snap_to_pattern = save(s + 1);
-			snap_to = 0;
+			page_align_pattern = save(s + 1);
+			page_align = 0;
 		}
 		else
 		{
 			/* Line count (including +N, -N); 0 means screen height */
 			n = atoi(s);
-			snap_to = (n == 0) ? INT_MIN : n;
-			snap_to_pattern = NULL;
+			page_align = (n == 0) ? INT_MIN : n;
+			page_align_pattern = NULL;
 		}
 		break;
 	case QUERY:
-		if (snap_to_pattern != NULL)
+		if (page_align_pattern != NULL)
 		{
-			parg.p_string = snap_to_pattern;
-			error("Snap pattern: /%s", &parg);
+			parg.p_string = page_align_pattern;
+			error("Page align pattern: /%s", &parg);
 		}
 		else
 		{
-			parg.p_int = (snap_to == INT_MIN) ? 0 : snap_to;
-			error("Snap line count: %d", &parg);
+			parg.p_int = (page_align == INT_MIN) ? 0 : page_align;
+			error("Page align: %d", &parg);
 		}
 		break;
 	}

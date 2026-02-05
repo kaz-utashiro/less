@@ -37,10 +37,10 @@ extern POSITION end_attnpos;
 extern int utf_mode;
 extern int sc_width;
 extern int sc_height;
-extern int snap_to;
-extern char *snap_to_pattern;
-#define snap_to_set() (snap_to != 0 || snap_to_pattern != NULL)
-#define get_snap_to() ((snap_to == INT_MIN) ? sc_height : (snap_to <= 0) ? sc_height + snap_to : snap_to)
+extern int page_align;
+extern char *page_align_pattern;
+#define page_align_set() (page_align != 0 || page_align_pattern != NULL)
+#define get_page_align() ((page_align == INT_MIN) ? sc_height : (page_align <= 0) ? sc_height + page_align : page_align)
 extern int hshift;
 extern int match_shift;
 extern int nosearch_header_lines;
@@ -149,8 +149,8 @@ struct pattern_info {
 static struct pattern_info search_info;
 public int is_caseless;
 
-/* Snap pattern matching */
-static struct pattern_info snap_pattern_info;
+/* Page align pattern matching */
+static struct pattern_info page_align_pattern_info;
 
 /*
  * Are there any uppercase letters in this string?
@@ -232,44 +232,44 @@ public void init_search(void)
 }
 
 /*
- * Compile the snap pattern (called once when needed).
+ * Compile the page align pattern (called once when needed).
  */
-static int compile_snap_pattern(void)
+static int compile_page_align_pattern(void)
 {
-	if (snap_to_pattern == NULL)
+	if (page_align_pattern == NULL)
 		return 0;
-	if (!is_null_pattern(snap_pattern_info.compiled))
+	if (!is_null_pattern(page_align_pattern_info.compiled))
 		return 1;
 
-	init_pattern(&snap_pattern_info);
-	if (set_pattern(&snap_pattern_info, snap_to_pattern, 0, 1) < 0)
+	init_pattern(&page_align_pattern_info);
+	if (set_pattern(&page_align_pattern_info, page_align_pattern, 0, 1) < 0)
 		return 0;
-	if (compile_pattern(snap_to_pattern, 0, 0, &snap_pattern_info.compiled) < 0)
+	if (compile_pattern(page_align_pattern, 0, 0, &page_align_pattern_info.compiled) < 0)
 		return 0;
 
 	return 1;
 }
 
 /*
- * Check if a line matches the snap pattern.
+ * Check if a line matches the page align pattern.
  */
-static int line_matches_snap_pattern(constant char *line, size_t line_len)
+static int line_matches_page_align_pattern(constant char *line, size_t line_len)
 {
 	constant char *sp, *ep;
 
-	if (is_null_pattern(snap_pattern_info.compiled) && !compile_snap_pattern())
+	if (is_null_pattern(page_align_pattern_info.compiled) && !compile_page_align_pattern())
 		return 0;
 
-	return match_pattern(info_compiled(&snap_pattern_info), snap_pattern_info.text,
-	                     line, line_len, 0, &sp, &ep, 1, 0, snap_pattern_info.search_type);
+	return match_pattern(info_compiled(&page_align_pattern_info), page_align_pattern_info.text,
+	                     line, line_len, 0, &sp, &ep, 1, 0, page_align_pattern_info.search_type);
 }
 
 /*
- * Search backward for a line matching the snap pattern.
+ * Search backward for a line matching the page align pattern.
  * If check_curr is true, check the line at pos first.
  * Returns the position of the matching line, or NULL_POSITION if not found.
  */
-static POSITION search_snap_boundary_backward(POSITION pos, int check_curr)
+static POSITION search_page_align_boundary_backward(POSITION pos, int check_curr)
 {
 	constant char *line;
 	size_t line_len;
@@ -277,13 +277,13 @@ static POSITION search_snap_boundary_backward(POSITION pos, int check_curr)
 
 	if (check_curr && forw_raw_line(curr, &line, &line_len) != NULL_POSITION)
 	{
-		if (line_matches_snap_pattern(line, line_len))
+		if (line_matches_page_align_pattern(line, line_len))
 			return curr;
 	}
 
 	while ((curr = back_raw_line(curr, &line, &line_len)) != NULL_POSITION)
 	{
-		if (line_matches_snap_pattern(line, line_len))
+		if (line_matches_page_align_pattern(line, line_len))
 			return curr;
 	}
 
@@ -291,10 +291,10 @@ static POSITION search_snap_boundary_backward(POSITION pos, int check_curr)
 }
 
 /*
- * Search forward for a line matching the snap pattern.
+ * Search forward for a line matching the page align pattern.
  * Skips the line at pos.
  */
-static POSITION search_snap_boundary_forward(POSITION pos)
+static POSITION search_page_align_boundary_forward(POSITION pos)
 {
 	constant char *line;
 	size_t line_len;
@@ -305,7 +305,7 @@ static POSITION search_snap_boundary_forward(POSITION pos)
 		next = forw_raw_line(curr, &line, &line_len);
 		if (next == NULL_POSITION)
 			break;
-		if (line_matches_snap_pattern(line, line_len))
+		if (line_matches_page_align_pattern(line, line_len))
 			return curr;
 	}
 
@@ -313,12 +313,12 @@ static POSITION search_snap_boundary_forward(POSITION pos)
 }
 
 /*
- * Find the snap boundary for a given position.
+ * Find the page align boundary for a given position.
  * Searches backward from pos; returns beginning of file if no match found.
  */
-static POSITION find_snap_boundary_pattern(POSITION pos)
+static POSITION find_page_align_boundary(POSITION pos)
 {
-	POSITION boundary = search_snap_boundary_backward(pos, 1);
+	POSITION boundary = search_page_align_boundary_backward(pos, 1);
 	return (boundary != NULL_POSITION) ? boundary : (POSITION) 0;
 }
 
@@ -1290,35 +1290,35 @@ public POSITION search_pos(int search_type)
 			pos = forw_raw_line(pos, NULL, NULL);
 
 		/*
-		 * If snap_line is set and this is a repeat search,
-		 * start from the next/prev snap boundary instead.
+		 * If page_align is set and this is a repeat search,
+		 * start from the next/prev page boundary instead.
 		 */
-		if (snap_to_set() && (search_type & SRCH_AFTER_TARGET))
+		if (page_align_set() && (search_type & SRCH_AFTER_TARGET))
 		{
 			POSITION screen_top = position(0);
 			POSITION boundary = NULL_POSITION;
 
-			if (snap_to_pattern != NULL)
+			if (page_align_pattern != NULL)
 			{
-				/* Pattern-based snapping */
+				/* Pattern-based alignment */
 				if (search_type & SRCH_FORW)
-					boundary = search_snap_boundary_forward(screen_top);
+					boundary = search_page_align_boundary_forward(screen_top);
 				else
-					boundary = search_snap_boundary_backward(screen_top, 0);
+					boundary = search_page_align_boundary_backward(screen_top, 0);
 			}
 			else
 			{
-				/* Line-count based snapping */
-				int snap = get_snap_to();
-				if (snap > 0)
+				/* Line-count based alignment */
+				int align = get_page_align();
+				if (align > 0)
 				{
 					LINENUM top_linenum = find_linenum(screen_top);
 					LINENUM bline;
 					if (search_type & SRCH_FORW)
-						bline = ((top_linenum - 1) / snap + 1) * snap + 1;
+						bline = ((top_linenum - 1) / align + 1) * align + 1;
 					else
 					{
-						bline = ((top_linenum - 1) / snap) * snap;
+						bline = ((top_linenum - 1) / align) * align;
 						if (bline < 1) bline = 1;
 					}
 					boundary = find_pos(bline);
@@ -2342,22 +2342,22 @@ public int search(int search_type, constant char *pattern, int n)
 			jump_loc(lastlinepos, BOTTOM);
 		else if (pos != opos)
 		{
-			if (snap_to_set())
+			if (page_align_set())
 			{
-				if (snap_to_pattern != NULL)
+				if (page_align_pattern != NULL)
 				{
-					/* Pattern-based snapping */
-					POSITION bpos = find_snap_boundary_pattern(pos);
+					/* Pattern-based alignment */
+					POSITION bpos = find_page_align_boundary(pos);
 					if (bpos != NULL_POSITION)
 						pos = bpos;
 				}
 				else
 				{
-					/* Line-count based snapping */
-					int snap = get_snap_to();
-					if (snap > 0)
+					/* Line-count based alignment */
+					int align = get_page_align();
+					if (align > 0)
 					{
-						LINENUM boundary = ((find_linenum(pos) - 1) / snap) * snap + 1;
+						LINENUM boundary = ((find_linenum(pos) - 1) / align) * align + 1;
 						POSITION bpos = find_pos(boundary);
 						if (bpos != NULL_POSITION)
 							pos = bpos;
