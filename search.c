@@ -242,9 +242,8 @@ static int compile_page_align_pattern(void)
 		return 1;
 
 	init_pattern(&page_align_pattern_info);
-	if (set_pattern(&page_align_pattern_info, page_align_pattern, 0, 1) < 0)
-		return 0;
-	if (compile_pattern(page_align_pattern, 0, 0, &page_align_pattern_info.compiled) < 0)
+	page_align_pattern_info.text = save(page_align_pattern);
+	if (compile_pattern(page_align_pattern, 0, 1, &page_align_pattern_info.compiled) < 0)
 		return 0;
 
 	return 1;
@@ -281,9 +280,10 @@ static POSITION search_page_align_boundary_backward(POSITION pos, int check_curr
 			return curr;
 	}
 
-	while ((curr = back_raw_line(curr, &line, &line_len)) != NULL_POSITION)
+	while ((curr = back_raw_line(curr, NULL, NULL)) != NULL_POSITION)
 	{
-		if (line_matches_page_align_pattern(line, line_len))
+		if (forw_raw_line(curr, &line, &line_len) != NULL_POSITION &&
+		    line_matches_page_align_pattern(line, line_len))
 			return curr;
 	}
 
@@ -1293,18 +1293,21 @@ public POSITION search_pos(int search_type)
 		 * If page_align is set and this is a repeat search,
 		 * start from the next/prev page boundary instead.
 		 */
-		if (page_align_set() && (search_type & SRCH_AFTER_TARGET))
+		if (page_align_set() && (search_type & SRCH_AFTER_TARGET) && (search_type & SRCH_FORW))
 		{
+			/*
+			 * For forward repeat search with page_align,
+			 * start from the next page boundary.
+			 * For backward search, start from screen_top;
+			 * the display position will be aligned in search().
+			 */
 			POSITION screen_top = position(0);
 			POSITION boundary = NULL_POSITION;
 
 			if (page_align_pattern != NULL)
 			{
 				/* Pattern-based alignment */
-				if (search_type & SRCH_FORW)
-					boundary = search_page_align_boundary_forward(screen_top);
-				else
-					boundary = search_page_align_boundary_backward(screen_top, 0);
+				boundary = search_page_align_boundary_forward(screen_top);
 			}
 			else
 			{
@@ -1313,14 +1316,7 @@ public POSITION search_pos(int search_type)
 				if (align > 0)
 				{
 					LINENUM top_linenum = find_linenum(screen_top);
-					LINENUM bline;
-					if (search_type & SRCH_FORW)
-						bline = ((top_linenum - 1) / align + 1) * align + 1;
-					else
-					{
-						bline = ((top_linenum - 1) / align) * align;
-						if (bline < 1) bline = 1;
-					}
+					LINENUM bline = ((top_linenum - 1) / align + 1) * align + 1;
 					boundary = find_pos(bline);
 				}
 			}
