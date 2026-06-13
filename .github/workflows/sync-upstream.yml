@@ -1,0 +1,145 @@
+name: Sync page-align with upstream less
+
+# Weekly check for a new upstream less release (gwsw/less publishes
+# releases as vNNN tags).  When a newer release exists than what the
+# page-align branch is based on, try to rebase page-align onto it:
+#   - clean rebase  -> push sync/<tag> and open a PR for review
+#   - conflicts     -> open an issue asking for a manual rebase
+#
+# Requirements (one-time, in repo Settings -> Actions -> General):
+#   - Workflow permissions: "Read and write"
+#   - Enable "Allow GitHub Actions to create and approve pull requests"
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Every Monday 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  FEATURE_BRANCH: page-align
+  UPSTREAM_URL: https://github.com/gwsw/less.git
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: page-align
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream tags
+        run: |
+          git remote add upstream "$UPSTREAM_URL"
+          git fetch --tags --quiet upstream
+
+      - name: Find latest upstream release tag
+        id: latest
+        run: |
+          tag=$(git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+$' | head -n1)
+          echo "Latest upstream release tag: ${tag:-<none>}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether a sync is needed
+        id: check
+        run: |
+          tag="${{ steps.latest.outputs.tag }}"
+          needed=false
+          if [ -n "$tag" ] && ! git merge-base --is-ancestor "$tag" HEAD; then
+            needed=true
+            echo "$FEATURE_BRANCH does not yet contain $tag -> sync needed"
+          else
+            echo "$FEATURE_BRANCH already contains ${tag:-<none>} -> nothing to do"
+          fi
+          echo "needed=$needed" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if a PR or issue for this tag already exists
+        id: dedup
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.latest.outputs.tag }}"
+          prs=$(gh pr list --state open --head "sync/$tag" --json number --jq 'length')
+          issues=$(gh issue list --state open --search "in:title Sync onto upstream $tag" --json number --jq 'length')
+          if [ "$prs" != "0" ] || [ "$issues" != "0" ]; then
+            echo "An open PR or issue for $tag already exists -> skip"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Attempt rebase onto upstream tag
+        id: rebase
+        if: steps.check.outputs.needed == 'true' && steps.dedup.outputs.skip == 'false'
+        run: |
+          tag="${{ steps.latest.outputs.tag }}"
+          if git rebase "$tag"; then
+            echo "result=clean" >> "$GITHUB_OUTPUT"
+          else
+            conflicts=$(git diff --name-only --diff-filter=U | paste -sd, -)
+            git rebase --abort
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+            echo "conflicts=$conflicts" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Clean rebase -> push branch and open PR
+        if: steps.rebase.outputs.result == 'clean'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.latest.outputs.tag }}"
+          git push --force origin "HEAD:sync/$tag"
+          cat > /tmp/pr-body.md <<EOF
+          Automated sync: \`$FEATURE_BRANCH\` was rebased cleanly onto upstream less **$tag**.
+
+          Review the diff, and if it looks good, fast-forward \`$FEATURE_BRANCH\` to this branch:
+
+          \`\`\`
+          git fetch origin
+          git checkout $FEATURE_BRANCH
+          git reset --hard origin/sync/$tag
+          git push --force-with-lease
+          \`\`\`
+          EOF
+          gh pr create \
+            --base "$FEATURE_BRANCH" \
+            --head "sync/$tag" \
+            --title "Rebase $FEATURE_BRANCH onto upstream $tag" \
+            --body-file /tmp/pr-body.md
+
+      - name: Conflicts -> open issue
+        if: steps.rebase.outputs.result == 'conflict'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.latest.outputs.tag }}"
+          cat > /tmp/issue-body.md <<EOF
+          Upstream less released **$tag**, but rebasing \`$FEATURE_BRANCH\` onto it hit conflicts, so it needs a manual rebase.
+
+          Conflicting files: \`${{ steps.rebase.outputs.conflicts }}\`
+
+          To rebase manually:
+
+          \`\`\`
+          git fetch --tags https://github.com/gwsw/less.git
+          git checkout $FEATURE_BRANCH
+          git rebase $tag
+          # resolve conflicts, then:
+          git push --force-with-lease
+          \`\`\`
+          EOF
+          gh issue create \
+            --title "Sync onto upstream $tag: manual rebase needed" \
+            --body-file /tmp/issue-body.md
