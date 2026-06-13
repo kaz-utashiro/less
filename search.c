@@ -323,6 +323,37 @@ static POSITION find_page_align_boundary(POSITION pos)
 }
 
 /*
+ * Snap a position to the page align boundary that contains it.
+ * Returns pos unchanged if --page-align is not enabled, or if the
+ * boundary cannot be determined.
+ */
+public POSITION page_align_boundary(POSITION pos)
+{
+	if (!page_align_set())
+		return pos;
+	if (page_align_pattern != NULL)
+	{
+		/* Pattern-based alignment */
+		POSITION bpos = find_page_align_boundary(pos);
+		if (bpos != NULL_POSITION)
+			return bpos;
+	}
+	else
+	{
+		/* Line-count based alignment */
+		int align = get_page_align();
+		if (align > 0)
+		{
+			LINENUM boundary = ((find_linenum(pos) - 1) / align) * align + 1;
+			POSITION bpos = find_pos(boundary);
+			if (bpos != NULL_POSITION)
+				return bpos;
+		}
+	}
+	return pos;
+}
+
+/*
  * Determine which text conversions to perform before pattern matching.
  */
 public int get_cvt_ops(int search_type)
@@ -2343,28 +2374,7 @@ public int search(int search_type, constant char *pattern, int n)
 			jump_loc(lastlinepos, BOTTOM);
 		else if (pos != opos)
 		{
-			if (page_align_set())
-			{
-				if (page_align_pattern != NULL)
-				{
-					/* Pattern-based alignment */
-					POSITION bpos = find_page_align_boundary(pos);
-					if (bpos != NULL_POSITION)
-						pos = bpos;
-				}
-				else
-				{
-					/* Line-count based alignment */
-					int align = get_page_align();
-					if (align > 0)
-					{
-						LINENUM boundary = ((find_linenum(pos) - 1) / align) * align + 1;
-						POSITION bpos = find_pos(boundary);
-						if (bpos != NULL_POSITION)
-							pos = bpos;
-					}
-				}
-			}
+			pos = page_align_boundary(pos);
 			jump_loc(pos, jump_sline);
 		}
 	}
