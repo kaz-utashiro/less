@@ -1719,6 +1719,20 @@ of the screen, starting with a decimal point: \&.5 is half of the
 screen width, \&.3 is three tenths of the screen width, and so on.
 If the number is specified as a fraction, the actual number of
 scroll positions is recalculated if the terminal window is resized.
+.IP "\fB\-\-align\-record=\fP\fIn\fP"
+When a search moves to a matching line, show the whole record
+containing that line from the top of the screen, rather than the
+matching line itself.
+With a numeric \fIn\fP, each record is \fIn\fP lines long;
+zero means the height of the screen, and a negative value means
+that many lines fewer.
+For example,
+\fB\-\-align\-record=\-1\fP lets you page through records that are
+one line shorter than the screen, the height \fBless\fP shows at
+once since it keeps the bottom line for its prompt.
+If the value begins with a slash, the rest is a \fIpattern\fP
+and a new record begins at each matching line,
+so records may then vary in length.
 .IP "\fB\-\-autosave=\fP\fIactions\fP
 Normally the history file is saved only when
 .B less
@@ -2025,20 +2039,6 @@ Searches do not include header columns, but still include header lines.
 Searches do not include header lines or header columns.
 .IP "\fB\-\-no\-vbell\fP"
 Disables the terminal's visual bell.
-.IP "\fB\-\-page\-align=\fP\fIn\fP"
-When a search moves to a matching line, show the whole record
-containing that line from the top of the screen, rather than the
-matching line itself.
-With a numeric \fIn\fP, each record is \fIn\fP lines long;
-zero means the height of the screen, and a negative value means
-that many lines fewer.
-For example,
-\fB\-\-page\-align=\-1\fP lets you page through records that are
-one line shorter than the screen, the height \fBless\fP shows at
-once since it keeps the bottom line for its prompt.
-If the value begins with a slash, the rest is a \fIpattern\fP
-and a new record begins at each matching line,
-so records may then vary in length.
 .IP "\fB\-\-past\-eof\fP"
 Normally scrolling commands (other than J, K, ESC-SPACE and ESC-b)
 stop scrolling when end-of-file is reached scrolling forward, or

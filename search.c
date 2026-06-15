@@ -37,10 +37,10 @@ extern POSITION end_attnpos;
 extern int utf_mode;
 extern int sc_width;
 extern int sc_height;
-extern int page_align;
-extern char *page_align_pattern;
-#define page_align_set() (page_align != 0 || page_align_pattern != NULL)
-#define get_page_align() ((page_align == INT_MIN) ? sc_height : (page_align <= 0) ? sc_height + page_align : page_align)
+extern int align_record;
+extern char *align_record_pattern;
+#define align_record_set() (align_record != 0 || align_record_pattern != NULL)
+#define get_align_record() ((align_record == INT_MIN) ? sc_height : (align_record <= 0) ? sc_height + align_record : align_record)
 extern int hshift;
 extern int match_shift;
 extern int nosearch_header_lines;
@@ -149,8 +149,8 @@ struct pattern_info {
 static struct pattern_info search_info;
 public int is_caseless;
 
-/* Page align pattern matching */
-static struct pattern_info page_align_pattern_info;
+/* Align record pattern matching */
+static struct pattern_info align_record_pattern_info;
 
 /*
  * Are there any uppercase letters in this string?
@@ -232,43 +232,43 @@ public void init_search(void)
 }
 
 /*
- * Compile the page align pattern (called once when needed).
+ * Compile the record pattern (called once when needed).
  */
-static int compile_page_align_pattern(void)
+static int compile_align_record_pattern(void)
 {
-	if (page_align_pattern == NULL)
+	if (align_record_pattern == NULL)
 		return 0;
-	if (!is_null_pattern(page_align_pattern_info.compiled))
+	if (!is_null_pattern(align_record_pattern_info.compiled))
 		return 1;
 
-	init_pattern(&page_align_pattern_info);
-	page_align_pattern_info.text = save(page_align_pattern);
-	if (compile_pattern(page_align_pattern, 0, 1, &page_align_pattern_info.compiled) < 0)
+	init_pattern(&align_record_pattern_info);
+	align_record_pattern_info.text = save(align_record_pattern);
+	if (compile_pattern(align_record_pattern, 0, 1, &align_record_pattern_info.compiled) < 0)
 		return 0;
 
 	return 1;
 }
 
 /*
- * Check if a line matches the page align pattern.
+ * Check if a line matches the record pattern.
  */
-static int line_matches_page_align_pattern(constant char *line, size_t line_len)
+static int line_matches_align_record_pattern(constant char *line, size_t line_len)
 {
 	constant char *sp, *ep;
 
-	if (is_null_pattern(page_align_pattern_info.compiled) && !compile_page_align_pattern())
+	if (is_null_pattern(align_record_pattern_info.compiled) && !compile_align_record_pattern())
 		return 0;
 
-	return match_pattern(info_compiled(&page_align_pattern_info), page_align_pattern_info.text,
-	                     line, line_len, 0, &sp, &ep, 1, 0, page_align_pattern_info.search_type);
+	return match_pattern(info_compiled(&align_record_pattern_info), align_record_pattern_info.text,
+	                     line, line_len, 0, &sp, &ep, 1, 0, align_record_pattern_info.search_type);
 }
 
 /*
- * Search backward for a line matching the page align pattern.
+ * Search backward for a line matching the record pattern.
  * If check_curr is true, check the line at pos first.
  * Returns the position of the matching line, or NULL_POSITION if not found.
  */
-static POSITION search_page_align_boundary_backward(POSITION pos, int check_curr)
+static POSITION search_align_record_boundary_backward(POSITION pos, int check_curr)
 {
 	constant char *line;
 	size_t line_len;
@@ -276,14 +276,14 @@ static POSITION search_page_align_boundary_backward(POSITION pos, int check_curr
 
 	if (check_curr && forw_raw_line(curr, &line, &line_len) != NULL_POSITION)
 	{
-		if (line_matches_page_align_pattern(line, line_len))
+		if (line_matches_align_record_pattern(line, line_len))
 			return curr;
 	}
 
 	while ((curr = back_raw_line(curr, NULL, NULL)) != NULL_POSITION)
 	{
 		if (forw_raw_line(curr, &line, &line_len) != NULL_POSITION &&
-		    line_matches_page_align_pattern(line, line_len))
+		    line_matches_align_record_pattern(line, line_len))
 			return curr;
 	}
 
@@ -291,10 +291,10 @@ static POSITION search_page_align_boundary_backward(POSITION pos, int check_curr
 }
 
 /*
- * Search forward for a line matching the page align pattern.
+ * Search forward for a line matching the record pattern.
  * Skips the line at pos.
  */
-static POSITION search_page_align_boundary_forward(POSITION pos)
+static POSITION search_align_record_boundary_forward(POSITION pos)
 {
 	constant char *line;
 	size_t line_len;
@@ -305,7 +305,7 @@ static POSITION search_page_align_boundary_forward(POSITION pos)
 		next = forw_raw_line(curr, &line, &line_len);
 		if (next == NULL_POSITION)
 			break;
-		if (line_matches_page_align_pattern(line, line_len))
+		if (line_matches_align_record_pattern(line, line_len))
 			return curr;
 	}
 
@@ -313,35 +313,35 @@ static POSITION search_page_align_boundary_forward(POSITION pos)
 }
 
 /*
- * Find the page align boundary for a given position.
+ * Find the record boundary for a given position.
  * Searches backward from pos; returns beginning of file if no match found.
  */
-static POSITION find_page_align_boundary(POSITION pos)
+static POSITION find_align_record_boundary(POSITION pos)
 {
-	POSITION boundary = search_page_align_boundary_backward(pos, 1);
+	POSITION boundary = search_align_record_boundary_backward(pos, 1);
 	return (boundary != NULL_POSITION) ? boundary : (POSITION) 0;
 }
 
 /*
- * Snap a position to the page align boundary that contains it.
- * Returns pos unchanged if --page-align is not enabled, or if the
+ * Snap a position to the record boundary that contains it.
+ * Returns pos unchanged if --align-record is not enabled, or if the
  * boundary cannot be determined.
  */
-public POSITION page_align_boundary(POSITION pos)
+public POSITION align_record_boundary(POSITION pos)
 {
-	if (!page_align_set())
+	if (!align_record_set())
 		return pos;
-	if (page_align_pattern != NULL)
+	if (align_record_pattern != NULL)
 	{
 		/* Pattern-based alignment */
-		POSITION bpos = find_page_align_boundary(pos);
+		POSITION bpos = find_align_record_boundary(pos);
 		if (bpos != NULL_POSITION)
 			return bpos;
 	}
 	else
 	{
 		/* Line-count based alignment */
-		int align = get_page_align();
+		int align = get_align_record();
 		if (align > 0)
 		{
 			LINENUM boundary = ((find_linenum(pos) - 1) / align) * align + 1;
@@ -1321,29 +1321,29 @@ public POSITION search_pos(int search_type)
 			pos = forw_raw_line(pos, NULL, NULL);
 
 		/*
-		 * If page_align is set and this is a repeat search,
-		 * start from the next/prev page boundary instead.
+		 * If align_record is set and this is a repeat search,
+		 * start from the next/prev record boundary instead.
 		 */
-		if (page_align_set() && (search_type & SRCH_AFTER_TARGET) && (search_type & SRCH_FORW))
+		if (align_record_set() && (search_type & SRCH_AFTER_TARGET) && (search_type & SRCH_FORW))
 		{
 			/*
-			 * For forward repeat search with page_align,
-			 * start from the next page boundary.
+			 * For forward repeat search with align_record,
+			 * start from the next record boundary.
 			 * For backward search, start from screen_top;
 			 * the display position will be aligned in search().
 			 */
 			POSITION screen_top = position(0);
 			POSITION boundary = NULL_POSITION;
 
-			if (page_align_pattern != NULL)
+			if (align_record_pattern != NULL)
 			{
 				/* Pattern-based alignment */
-				boundary = search_page_align_boundary_forward(screen_top);
+				boundary = search_align_record_boundary_forward(screen_top);
 			}
 			else
 			{
 				/* Line-count based alignment */
-				int align = get_page_align();
+				int align = get_align_record();
 				if (align > 0)
 				{
 					LINENUM top_linenum = find_linenum(screen_top);
@@ -2374,7 +2374,7 @@ public int search(int search_type, constant char *pattern, int n)
 			jump_loc(lastlinepos, BOTTOM);
 		else if (pos != opos)
 		{
-			pos = page_align_boundary(pos);
+			pos = align_record_boundary(pos);
 			jump_loc(pos, jump_sline);
 		}
 	}
