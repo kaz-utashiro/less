@@ -94,8 +94,8 @@ public char intr_char = CONTROL('X'); /* Char to interrupt reads */
 public char *first_cmd_at_prompt = NULL; /* Command to exec before first prompt */
 public char *autosave;          /* Actions which do autosave of history file */
 public char *end_prompt;        /* Printed after clearing the prompt */
-public int page_align = 0;         /* Align search results to N-line boundaries (0=not set, INT_MIN=screen height) */
-public char *page_align_pattern = NULL; /* Pattern for page align boundary */
+public int align_record = 0;         /* Align search results to N-line boundaries (0=not set, INT_MIN=screen height) */
+public char *align_record_pattern = NULL; /* Pattern for record boundary */
 #if HILITE_SEARCH
 public int hilite_search;       /* Highlight matched search patterns? */
 #endif
@@ -201,7 +201,7 @@ static struct optname first_cmd_at_prompt_optname = { "cmd", NULL };
 static struct optname autosave_optname = { "autosave", NULL };
 static struct optname hilite_target_optname = { "hilite-target", NULL };
 static struct optname end_prompt_optname = { "end-prompt", NULL };
-static struct optname page_align_optname = { "page-align", NULL };
+static struct optname align_record_optname = { "align-record", NULL };
 #if LESSTEST
 static struct optname ttyin_name_optname = { "tty",              NULL };
 #endif /*LESSTEST*/
@@ -814,10 +814,10 @@ static struct loption option[] =
 		O_STRING, 0, NULL, opt_end_prompt,
 		{ "Print after prompt: ", "s", NULL }
 	},
-	{ OLETTER_NONE, &page_align_optname,
-		O_STRING, 0, NULL, opt_page_align,
+	{ OLETTER_NONE, &align_record_optname,
+		O_STRING, 0, NULL, opt_align_record,
 		{
-			"Page align: ",
+			"Align record: ",
 			NULL,
 			NULL
 		}
