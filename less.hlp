@@ -284,8 +284,8 @@
                   Display a message if preprocessor exits with an error status.
                 --past-eof
                   Scrolling commands continue past end of file.
-                --page-align=[_N|/_p_a_t_t_e_r_n]
-                  Set page boundaries at every _N lines or at lines matching /_p_a_t_t_e_r_n.
+                --align-record=[_N|/_p_a_t_t_e_r_n]
+                  Set record boundaries at every _N lines or at lines matching /_p_a_t_t_e_r_n.
                 --proc-backspace
                   Process backspaces for bold/underline.
                 --PROC-BACKSPACE

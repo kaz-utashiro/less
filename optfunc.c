@@ -79,8 +79,8 @@ extern POSITION header_start_pos;
 extern char *init_header;
 extern char *first_cmd_at_prompt;
 extern char *autosave;
-extern int page_align;
-extern char *page_align_pattern;
+extern int align_record;
+extern char *align_record_pattern;
 #if LOGFILE
 extern char *namelogfile;
 extern lbool force_logfile;
@@ -547,13 +547,13 @@ public void opt_autosave(int type, constant char *s)
 }
 
 /*
- * Handler for --page-align option.
+ * Handler for --align-record option.
  * 0: screen height
  * Positive N: N lines
  * Negative N: screen height + N
  * /pattern: align to lines matching pattern
  */
-public void opt_page_align(int type, constant char *s)
+public void opt_align_record(int type, constant char *s)
 {
 	PARG parg;
 	int n;
@@ -564,33 +564,33 @@ public void opt_page_align(int type, constant char *s)
 	case TOGGLE:
 		if (s == NULL || *s == '\0')
 		{
-			page_align = INT_MIN;  /* screen height */
-			page_align_pattern = NULL;
+			align_record = INT_MIN;  /* screen height */
+			align_record_pattern = NULL;
 		}
 		else if (*s == '/')
 		{
 			/* Pattern: skip the leading '/' */
-			page_align_pattern = save(s + 1);
-			page_align = 0;
+			align_record_pattern = save(s + 1);
+			align_record = 0;
 		}
 		else
 		{
 			/* Line count (including +N, -N); 0 means screen height */
 			n = atoi(s);
-			page_align = (n == 0) ? INT_MIN : n;
-			page_align_pattern = NULL;
+			align_record = (n == 0) ? INT_MIN : n;
+			align_record_pattern = NULL;
 		}
 		break;
 	case QUERY:
-		if (page_align_pattern != NULL)
+		if (align_record_pattern != NULL)
 		{
-			parg.p_string = page_align_pattern;
-			error("Page align pattern: /%s", &parg);
+			parg.p_string = align_record_pattern;
+			error("Align record pattern: /%s", &parg);
 		}
 		else
 		{
-			parg.p_int = (page_align == INT_MIN) ? 0 : page_align;
-			error("Page align: %d", &parg);
+			parg.p_int = (align_record == INT_MIN) ? 0 : align_record;
+			error("Align record: %d", &parg);
 		}
 		break;
 	}

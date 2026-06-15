@@ -103,7 +103,7 @@ public void jump_back(LINENUM linenum)
 	{
 		if (show_attn)
 			set_attnpos(pos);
-		jump_loc(page_align_boundary(pos), jump_sline);
+		jump_loc(align_record_boundary(pos), jump_sline);
 	} else if (linenum <= 1 && ch_beg_seek() == 0)
 	{
 		jump_loc(ch_tell(), jump_sline);
