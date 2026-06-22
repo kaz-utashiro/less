@@ -113,11 +113,12 @@ jobs:
           git push --force-with-lease
           \`\`\`
           EOF
-          gh pr create \
-            --base "$FEATURE_BRANCH" \
-            --head "sync/$tag" \
-            --title "Rebase $FEATURE_BRANCH onto upstream $tag" \
-            --body-file /tmp/pr-body.md
+          gh api repos/"$GITHUB_REPOSITORY"/pulls \
+            --method POST \
+            -f title="Rebase $FEATURE_BRANCH onto upstream $tag" \
+            -f head="sync/$tag" \
+            -f base="$FEATURE_BRANCH" \
+            -F body=@/tmp/pr-body.md
 
       - name: Conflicts -> open issue
         if: steps.rebase.outputs.result == 'conflict'
