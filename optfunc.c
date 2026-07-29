@@ -587,12 +587,12 @@ public void opt_align_record(int type, constant char *s)
 		if (align_record_pattern != NULL)
 		{
 			parg.p_string = align_record_pattern;
-			error("Align record pattern: /%s", &parg);
+			error(LM(Align_record_pattern_X), &parg);
 		}
 		else
 		{
 			parg.p_int = (align_record == INT_MIN) ? 0 : align_record;
-			error("Align record: %d", &parg);
+			error(LM(Align_record_X), &parg);
 		}
 		break;
 	}

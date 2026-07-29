@@ -151,6 +151,8 @@ Print_after_medium_prompt_X Print after medium prompt: %s
 Print_after_long_prompt_X Print after long prompt: %s
 Print_after_short_prompt_X Print after short prompt: %s
 Autosave_actions_X Autosave actions: %s
+Align_record_X Align record: %d
+Align_record_pattern_X Align record pattern: /%s
 Invalid_color_string_X Invalid color string \"%s\"
 on on
 off off
@@ -335,6 +337,7 @@ interrupt_character interrupt character:\40
 Search_match_shift Search match shift:\40
 Autosave_actions Autosave actions:\40
 Print_after_prompt Print after prompt:\40
+Align_record Align record:\40
 Error_X Error %d
 cannot_open cannot open
 Invalid_pattern Invalid pattern

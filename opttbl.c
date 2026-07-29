@@ -878,11 +878,8 @@ static struct loption option[] =
 	},
 	{ OLETTER_NONE, &align_record_optname,
 		O_STRING, 0, NULL, opt_align_record,
-		{
-			"Align record: ",
-			NULL,
-			NULL
-		}
+		{ LM_Align_record, LM_NULL, LM_NULL },
+		{ NULL, NULL, NULL }
 	},
 #if LESSTEST
 	{ OLETTER_NONE, &ttyin_name_optname,
