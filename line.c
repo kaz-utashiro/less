@@ -104,6 +104,8 @@ extern int ul_s_width, ul_e_width;
 extern int bl_s_width, bl_e_width;
 extern int so_s_width, so_e_width;
 extern int sc_width, sc_height;
+extern int shift_count;
+extern int align_shift;
 extern int utf_mode;
 extern POSITION start_attnpos;
 extern POSITION end_attnpos;
@@ -1987,6 +1989,42 @@ public int longest_line_width(void)
 }
 
 /*
+ * The amount to which horizontal shifts are aligned
+ * with --align-shift, or 0 if they are not aligned.
+ */
+public int align_shift_width(void)
+{
+	int width;
+
+	if (!align_shift)
+		return 0;
+	width = (shift_count > 0) ? shift_count : sc_width / 2;
+	return (width > 0) ? width : 1;
+}
+
+/*
+ * Round a horizontal shift down to an aligned position.
+ */
+public int align_shift_down(int shift)
+{
+	int width = align_shift_width();
+	if (width == 0 || shift <= 0)
+		return shift;
+	return shift / width * width;
+}
+
+/*
+ * Round a horizontal shift up to an aligned position.
+ */
+public int align_shift_up(int shift)
+{
+	int width = align_shift_width();
+	if (width == 0 || shift <= 0)
+		return shift;
+	return (shift + width - 1) / width * width;
+}
+
+/*
  * Find the shift necessary to show the end of the longest displayed line.
  */
 public int rrshift(void)
@@ -1994,7 +2032,7 @@ public int rrshift(void)
 	int longest = longest_line_width();
 	if (longest < sc_width)
 		return 0;
-	return longest - sc_width;
+	return align_shift_up(longest - sc_width);
 }
 
 /*

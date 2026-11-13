@@ -774,7 +774,18 @@ static void shift_visible(POSITION line_pos, size_t start_off, size_t end_off)
 	int new_hshift;
 	if (start_col < 0 || end_col < 0)
 		return;
-	if (end_col < swidth) /* whole string is in first screen */
+	if (align_shift_width() > 0)
+	{
+		int eol_col;
+		if (start_col >= hshift && end_col <= hshift + swidth)
+			return; /* already visible; leave hshift unchanged */
+		eol_col = align_shift_up(col_from_pos(line_pos, NULL_POSITION, end_pos, end_col) - swidth);
+		new_hshift = align_shift_down(start_col);
+		if (new_hshift > eol_col)
+			new_hshift = eol_col;
+		if (new_hshift < 0)
+			new_hshift = 0;
+	} else if (end_col < swidth) /* whole string is in first screen */
 		new_hshift = 0;
 	else if (start_col > hshift && end_col < hshift + swidth)
 		new_hshift = hshift; /* already visible; leave hshift unchanged */

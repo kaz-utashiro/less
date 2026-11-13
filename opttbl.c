@@ -86,6 +86,7 @@ public int proc_backspace;      /* Special handling of backspace */
 public int proc_tab;            /* Special handling of tab */
 public int proc_return;         /* Special handling of carriage return */
 public int match_shift;         /* Extra horizontal shift on search match */
+public int align_shift;         /* Align horizontal shift to multiples of shift_count */
 public int no_paste;            /* Don't accept pasted input */
 public int no_edit_warn;        /* Don't warn when editing a LESSOPENed file */
 public int stop_on_form_feed;   /* Stop scrolling on a line starting with form feed */
@@ -200,6 +201,7 @@ static struct optname proc_backspace_optname = { "proc-backspace", NULL };
 static struct optname proc_tab_optname = { "proc-tab", NULL };
 static struct optname proc_return_optname = { "proc-return", NULL };
 static struct optname match_shift_optname = { "match-shift", NULL };
+static struct optname align_shift_optname = { "align-shift", NULL };
 static struct optname first_cmd_at_prompt_optname = { "cmd", NULL };
 static struct optname autosave_optname = { "autosave", NULL };
 static struct optname hilite_target_optname = { "hilite-target", NULL };
@@ -877,6 +879,15 @@ static struct loption option[] =
 	{ OLETTER_NONE, &match_shift_optname,
 		O_STRING|O_INIT_HANDLER, 0, NULL, opt_match_shift,
 		{ LM_Search_match_shift, LM_dot_d, LM_NULL },
+		{ NULL, NULL, NULL }
+	},
+	{ OLETTER_NONE, &align_shift_optname,
+		O_BOOL|O_REPAINT, OPT_OFF, &align_shift, NULL,
+		{
+			LM_Dont_align_horizontal_shift,
+			LM_Align_horizontal_shift_to_shift_width,
+			LM_NULL
+		},
 		{ NULL, NULL, NULL }
 	},
 	{ OLETTER_NONE, &autosave_optname,

@@ -1985,7 +1985,31 @@ of the screen, starting with a decimal point: \&.5 is half of the
 screen width, \&.3 is three tenths of the screen width, and so on.
 If the number is specified as a fraction, the actual number of
 scroll positions is recalculated if the terminal window is resized.
-.IP "\fB\-\-modelines=\fP\fIn\fP"
+.IP "\fB\-\-align\-shift\fP"
+When
+.B "\-S"
+is in effect, keep the horizontal shift at a multiple of the
+amount set by the
+.B "\-#"
+option (half of the screen width if it is not set),
+so that text laid out in columns of that width, such as pages
+placed side by side, always starts at a column boundary on the left
+edge of the screen.
+.IP
+A search that needs to shift the text moves to the boundary
+just before the match, instead of using the column set by
+.BR \-\-match\-shift .
+If the match is already visible, the text is not shifted.
+Shifting to the right end, by the
+.B "ESC\-}"
+command or by the right-limit-scroll command, goes to the
+nearest boundary that shows the end of the longest line,
+leaving some blank space at the right if the screen width
+is not a multiple of the shift amount.
+A number given to a left or right shift command is a count of
+shift amounts, and does not change the
+.B "\-#"
+option.
 .RS
 Before displaying a file,
 .B less 
