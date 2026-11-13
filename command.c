@@ -2499,6 +2499,9 @@ public void commands(void)
 				int limit = align_shift_up(longest_line_width() - sc_width);
 				if (hshift + (int) number > limit)
 					number = limit - hshift;
+				/* do not go back, if a search went past the limit */
+				if (number < 0 && align_shift_width() > 0)
+					number = 0;
 			}
 			hshift = align_shift_down(hshift + (int) number);
 			screen_trashed();
