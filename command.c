@@ -2468,14 +2468,16 @@ public void commands(void)
 			/*
 			 * Shift view left.
 			 */
-			if (number > 0)
+			if (number > 0 && align_shift_width() > 0)
+				number *= align_shift_width();
+			else if (number > 0)
 				shift_count = (int) number;
 			else
 				number = (shift_count > 0) ? shift_count : sc_width / 2;
 			if (number > hshift)
 				number = hshift;
 			pos_rehead(FALSE);
-			hshift -= (int) number;
+			hshift = align_shift_up(hshift - (int) number);
 			screen_trashed();
 			cmd_exec();
 			break;
@@ -2485,18 +2487,20 @@ public void commands(void)
 			/*
 			 * Shift view right.
 			 */
-			if (number > 0)
+			if (number > 0 && align_shift_width() > 0)
+				number *= align_shift_width();
+			else if (number > 0)
 				shift_count = (int) number;
 			else
 				number = (shift_count > 0) ? shift_count : sc_width / 2;
 			pos_rehead(FALSE);
 			if (action == A_RSHIFT_LIMIT)
 			{
-				int ll = longest_line_width();
-				if (hshift + sc_width + (int) number > ll)
-					number = ll - hshift - sc_width;
+				int limit = align_shift_up(longest_line_width() - sc_width);
+				if (hshift + (int) number > limit)
+					number = limit - hshift;
 			}
-			hshift += (int) number;
+			hshift = align_shift_down(hshift + (int) number);
 			screen_trashed();
 			cmd_exec();
 			break;

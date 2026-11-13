@@ -252,6 +252,8 @@
                   Set the width of the -N line number field to _N characters.
                 --match-shift=[_N]
                   Show at least _N characters to the left of a search match.
+                --align-shift
+                  Keep horizontal shift at multiples of the --shift amount.
                 --modelines=[_N]
                   Read _N lines from the input file and look for vim modelines.
                 --mouse

@@ -293,6 +293,8 @@ Line_highlight_applies_to_text_only Line highlight applies to text only
 Line_highlight_applies_to_entire_width_of_screen Line highlight applies to entire width of screen
 Accept_pasted_input Accept pasted input
 Ignore_pasted_input Ignore pasted input
+Dont_align_horizontal_shift Don't align horizontal shift
+Align_horizontal_shift_to_shift_width Align horizontal shift to shift width
 Dont_stop_on_form_feed Don't stop on form feed
 Stop_on_form_feed Stop on form feed
 Stop_scrolling_at_end_of_file Stop scrolling at end of file
