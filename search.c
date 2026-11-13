@@ -2251,21 +2251,13 @@ public void chg_caseless(void)
 }
 
 /*
- * Search for the n-th occurrence of a specified pattern, 
- * either forward or backward.
- * Return the number of matches not yet found in this file
- * (that is, n minus the number of matches found).
- * Return -1 if the search should be aborted.
- * Caller may continue the search in another file 
- * if less than n matches are found in this file.
- */
-/*
  * With --align-shift, the screen is divided into panes of the shift
  * width, and a search first looks for the panes containing a match
  * in the lines on the screen, in the order of the panes.
- * The pane reached by the last such search is remembered, since the
- * shift may stop short of it at the right end.
+ * The pane reached by the last such search is remembered, since a new
+ * search does not shift to a pane that is already visible.
  */
+static IFILE pane_ifile = NULL_IFILE;
 static POSITION pane_top = NULL_POSITION;
 static int pane_hshift = -1;
 static int pane_curr = -1;
@@ -2282,6 +2274,8 @@ static void mark_panes(POSITION linepos, int search_type, char *panes, int npane
 	int cvt_ops;
 	size_t cvt_len;
 	size_t line_off = 0;
+	POSITION prev_pos = NULL_POSITION;
+	int prev_col = -1;
 	constant char *sp[NSP];
 	constant char *ep[NSP];
 
@@ -2298,9 +2292,15 @@ static void mark_panes(POSITION linepos, int search_type, char *panes, int npane
 			search_info.search_type & ~SRCH_SUBSEARCH_ALL))
 	{
 		size_t start_off = ptr_diff(sp[0], cline);
-		int col = col_from_pos(linepos, linepos + chpos[start_off], NULL_POSITION, -1);
-		if (col >= 0 && col / width < npanes)
+		POSITION pos = linepos + chpos[start_off];
+		/* count the columns on from the last match */
+		int col = col_from_pos(linepos, pos, prev_pos, prev_col);
+		if (col < 0)
+			break;
+		if (col / width < npanes)
 			panes[col / width] = 1;
+		prev_pos = pos;
+		prev_col = col;
 		line_off = (ep[0] > sp[0]) ? ptr_diff(ep[0], cline) : start_off + 1;
 	}
 	free(cline);
@@ -2328,7 +2328,8 @@ static int search_pane(int search_type, int n)
 		return (-1);
 	if (search_type & (SRCH_NO_MATCH|SRCH_NO_MOVE|SRCH_INCR|SRCH_FIND_ALL|SRCH_FIRST_FILE))
 		return (-1);
-	curr = (repeat && top == pane_top && hshift == pane_hshift) ? pane_curr : hshift / width;
+	curr = (repeat && curr_ifile == pane_ifile && top == pane_top && hshift == pane_hshift) ?
+		pane_curr : hshift / width;
 	npanes = longest_line_width() / width + 1;
 	panes = (char *) ecalloc((size_t) npanes, 1);
 	for (sindex = TOP;  sindex < sc_height - 1;  sindex++)
@@ -2362,12 +2363,22 @@ static int search_pane(int search_type, int n)
 		hshift = new_hshift;
 		screen_trashed();
 	}
+	pane_ifile = curr_ifile;
 	pane_top = top;
 	pane_hshift = hshift;
 	pane_curr = target;
 	return (0);
 }
 
+/*
+ * Search for the n-th occurrence of a specified pattern, 
+ * either forward or backward.
+ * Return the number of matches not yet found in this file
+ * (that is, n minus the number of matches found).
+ * Return -1 if the search should be aborted.
+ * Caller may continue the search in another file 
+ * if less than n matches are found in this file.
+ */
 public int search(int search_type, constant char *pattern, int n)
 {
 	POSITION pos;
