@@ -2259,6 +2259,113 @@ public void chg_caseless(void)
  * Caller may continue the search in another file 
  * if less than n matches are found in this file.
  */
+/*
+ * With --align-shift, the screen is divided into panes of the shift
+ * width, and a search first looks for the panes containing a match
+ * in the lines on the screen, in the order of the panes.
+ * The pane reached by the last such search is remembered, since the
+ * shift may stop short of it at the right end.
+ */
+static POSITION pane_top = NULL_POSITION;
+static int pane_hshift = -1;
+static int pane_curr = -1;
+
+/*
+ * Mark the panes containing a match in a line.
+ */
+static void mark_panes(POSITION linepos, int search_type, char *panes, int npanes, int width)
+{
+	constant char *line;
+	size_t line_len;
+	char *cline;
+	int *chpos;
+	int cvt_ops;
+	size_t cvt_len;
+	size_t line_off = 0;
+	constant char *sp[NSP];
+	constant char *ep[NSP];
+
+	if (forw_raw_line(linepos, &line, &line_len) == NULL_POSITION)
+		return;
+	cvt_ops = get_cvt_ops(search_type);
+	cvt_len = cvt_length(line_len, cvt_ops);
+	cline = (char *) ecalloc(1, cvt_len);
+	chpos = cvt_alloc_chpos(cvt_len);
+	cvt_text(cline, line, chpos, &line_len, cvt_ops);
+	while (line_off <= line_len &&
+	       match_pattern(info_compiled(&search_info), search_info.text,
+			cline, line_len, line_off, sp, ep, NSP, line_off > 0,
+			search_info.search_type & ~SRCH_SUBSEARCH_ALL))
+	{
+		size_t start_off = ptr_diff(sp[0], cline);
+		int col = col_from_pos(linepos, linepos + chpos[start_off], NULL_POSITION, -1);
+		if (col >= 0 && col / width < npanes)
+			panes[col / width] = 1;
+		line_off = (ep[0] > sp[0]) ? ptr_diff(ep[0], cline) : start_off + 1;
+	}
+	free(cline);
+	free(chpos);
+}
+
+/*
+ * Move to the n-th pane containing a match in the lines on the screen.
+ * A repeated search starts at the pane after (or before) the current one,
+ * and always shifts to the pane found; a new search starts at the
+ * current pane, and does not shift if the pane found is visible.
+ * Return 0 if the pane is found, or -1 to search the lines as usual.
+ */
+static int search_pane(int search_type, int n)
+{
+	int width = align_shift_width();
+	POSITION top = position(TOP);
+	lbool repeat = (search_type & SRCH_AFTER_TARGET) != 0;
+	int step = (search_type & SRCH_FORW) ? 1 : -1;
+	int npanes, curr, target, sindex, new_hshift;
+	char *panes;
+
+	if (width == 0 || !chop_line() || top == NULL_POSITION || n <= 0)
+		return (-1);
+	if (search_type & (SRCH_NO_MATCH|SRCH_NO_MOVE|SRCH_INCR|SRCH_FIND_ALL|SRCH_FIRST_FILE))
+		return (-1);
+	curr = (repeat && top == pane_top && hshift == pane_hshift) ? pane_curr : hshift / width;
+	npanes = longest_line_width() / width + 1;
+	panes = (char *) ecalloc((size_t) npanes, 1);
+	for (sindex = TOP;  sindex < sc_height - 1;  sindex++)
+	{
+		POSITION pos = position(sindex);
+		if (pos == NULL_POSITION)
+			break;
+		mark_panes(pos, search_type, panes, npanes, width);
+	}
+	target = repeat ? curr : curr - step;
+	while (n-- > 0)
+	{
+		do
+			target += step;
+		while (target >= 0 && target < npanes && !panes[target]);
+		if (target < 0 || target >= npanes)
+		{
+			free(panes);
+			return (-1);
+		}
+	}
+	free(panes);
+	new_hshift = target * width;
+	if (!repeat && new_hshift >= hshift && new_hshift + width <= hshift + sc_width)
+		new_hshift = hshift; /* already visible */
+	else if (new_hshift > rrshift())
+		new_hshift = rrshift();
+	if (new_hshift != hshift)
+	{
+		hshift = new_hshift;
+		screen_trashed();
+	}
+	pane_top = top;
+	pane_hshift = hshift;
+	pane_curr = target;
+	return (0);
+}
+
 public int search(int search_type, constant char *pattern, int n)
 {
 	POSITION pos;
@@ -2333,6 +2440,15 @@ public int search(int search_type, constant char *pattern, int n)
 			hilite_screen();
 		}
 #endif
+	}
+
+	if (search_pane(search_type, n) == 0)
+	{
+#if HILITE_SEARCH
+		if (hilite_search == OPT_ON || status_col)
+			repaint_hilite(TRUE);
+#endif
+		return (0);
 	}
 
 	/*
