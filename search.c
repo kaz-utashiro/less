@@ -2146,7 +2146,8 @@ static void mark_panes(POSITION linepos, int search_type, char *panes, int npane
 /*
  * Move to the n-th pane containing a match in the lines on the screen.
  * A repeated search starts at the pane after (or before) the current one,
- * and always shifts to the pane found; a new search starts at the
+ * and always shifts the pane found to the left edge, even past the right
+ * end of the lines; a new search starts at the
  * current pane, and does not shift if the pane found is visible.
  * Return 0 if the pane is found, or -1 to search the lines as usual.
  */
@@ -2189,8 +2190,9 @@ static int search_pane(int search_type, int n)
 	new_hshift = target * width;
 	if (!repeat && new_hshift >= hshift && new_hshift + width <= hshift + sc_width)
 		new_hshift = hshift; /* already visible */
-	else if (new_hshift > rrshift())
+	else if (!repeat && new_hshift > rrshift())
 		new_hshift = rrshift();
+	/* a repeated search shows the pane at the left edge, even past the right end */
 	if (new_hshift != hshift)
 	{
 		hshift = new_hshift;

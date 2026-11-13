@@ -1993,7 +1993,9 @@ or
 .B N
 command, starts at the pane after (or before) the one reached by the
 last search, and shifts the pane found to the left edge of the screen,
-even if it is already visible.
+even if it is already visible, or if that goes past the right end of
+the lines;
+the right-limit-scroll command does not shift back from there.
 Only when no such pane is left does the search go on to the lines
 off the screen as usual;
 if that needs a shift, the text moves to the boundary just before
