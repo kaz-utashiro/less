@@ -2026,6 +2026,15 @@ A number given to a left or right shift command is a count of
 shift amounts, and does not change the
 .B "\-#"
 option.
+With a number, the right-limit-scroll command moves by screens of
+that many panes as they would be laid out without the shift:
+it goes on until the last pane is at the left edge of the screen,
+and does not move when the last pane is already on the screen.
+The
+.B "ESC\-}"
+command with a number shows the last of those screens,
+with the panes after the last one left blank.
+.IP "\fB\-\-modelines=\fP\fIn\fP"
 .RS
 Before displaying a file,
 .B less 
