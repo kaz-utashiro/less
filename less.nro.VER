@@ -1981,20 +1981,20 @@ so that text laid out in columns of that width, such as pages
 placed side by side, always starts at a column boundary on the left
 edge of the screen.
 .IP
-The screen is regarded as a row of panes of that width.
+The text is regarded as a row of panes of that width.
 A search first looks for a pane containing a match in the lines on
 the screen, going through the panes from left to right (or from right
 to left for a backward search).
-A new search starts at the leftmost pane on the screen, and does not
-shift the text if the pane found is already visible.
-A repeated search, by the
+A new search starts at the leftmost pane on the screen (the rightmost
+for a backward search), and a repeated search, by the
 .B n
 or
 .B N
-command, starts at the pane after (or before) the one reached by the
-last search, and shifts the pane found to the left edge of the screen,
-even if it is already visible, or if that goes past the right end of
-the lines.
+command, at the pane after (or before) the screen, so that the
+matches on the screen are skipped.
+If the pane found is not visible, the text is shifted by screens of
+panes until it is, so that the screens are the same as when the
+panes are laid out without the shift.
 Only when no such pane is left does the search go on to the lines
 off the screen as usual;
 if that needs a shift, the text moves to the boundary just before
