@@ -2251,16 +2251,10 @@ public void chg_caseless(void)
 }
 
 /*
- * With --align-shift, the screen is divided into panes of the shift
+ * With --align-shift, the text is divided into panes of the shift
  * width, and a search first looks for the panes containing a match
  * in the lines on the screen, in the order of the panes.
- * The pane reached by the last such search is remembered, since a new
- * search does not shift to a pane that is already visible.
  */
-static IFILE pane_ifile = NULL_IFILE;
-static POSITION pane_top = NULL_POSITION;
-static int pane_hshift = -1;
-static int pane_curr = -1;
 
 /*
  * Mark the panes containing a match in a line.
@@ -2309,10 +2303,11 @@ static void mark_panes(POSITION linepos, int search_type, char *panes, int npane
 
 /*
  * Move to the n-th pane containing a match in the lines on the screen.
- * A repeated search starts at the pane after (or before) the current one,
- * and always shifts the pane found to the left edge, even past the right
- * end of the lines; a new search starts at the
- * current pane, and does not shift if the pane found is visible.
+ * A new search starts at the first pane on the screen (or the last, for
+ * a backward search), and a repeated search at the pane after (or
+ * before) the screen, skipping the matches on it.  If the pane found is
+ * not visible, the text is shifted by screens of panes until it is, so
+ * that the screens are the same as without the shift.
  * Return 0 if the pane is found, or -1 to search the lines as usual.
  */
 static int search_pane(int search_type, int n)
@@ -2320,16 +2315,20 @@ static int search_pane(int search_type, int n)
 	int width = align_shift_width();
 	POSITION top = position(TOP);
 	lbool repeat = (search_type & SRCH_AFTER_TARGET) != 0;
-	int step = (search_type & SRCH_FORW) ? 1 : -1;
-	int npanes, curr, target, sindex, new_hshift;
+	int forw = (search_type & SRCH_FORW) != 0;
+	int step = forw ? 1 : -1;
+	int npanes, spanes, first, last, target, sindex, new_hshift;
 	char *panes;
 
 	if (width == 0 || !chop_line() || top == NULL_POSITION || n <= 0)
 		return (-1);
 	if (search_type & (SRCH_NO_MATCH|SRCH_NO_MOVE|SRCH_INCR|SRCH_FIND_ALL|SRCH_FIRST_FILE))
 		return (-1);
-	curr = (repeat && curr_ifile == pane_ifile && top == pane_top && hshift == pane_hshift) ?
-		pane_curr : hshift / width;
+	spanes = sc_width / width;
+	if (spanes < 1)
+		spanes = 1;
+	first = hshift / width;
+	last = first + spanes - 1;
 	npanes = longest_line_width() / width + 1;
 	panes = (char *) ecalloc((size_t) npanes, 1);
 	for (sindex = TOP;  sindex < sc_height - 1;  sindex++)
@@ -2339,7 +2338,10 @@ static int search_pane(int search_type, int n)
 			break;
 		mark_panes(pos, search_type, panes, npanes, width);
 	}
-	target = repeat ? curr : curr - step;
+	if (repeat)
+		target = forw ? last : first;
+	else
+		target = forw ? first - 1 : last + 1;
 	while (n-- > 0)
 	{
 		do
@@ -2352,21 +2354,19 @@ static int search_pane(int search_type, int n)
 		}
 	}
 	free(panes);
-	new_hshift = target * width;
-	if (!repeat && new_hshift >= hshift && new_hshift + width <= hshift + sc_width)
-		new_hshift = hshift; /* already visible */
-	else if (!repeat && new_hshift > rrshift())
-		new_hshift = rrshift();
-	/* a repeated search shows the pane at the left edge, even past the right end */
+	/* shift by screens of panes until the pane is visible */
+	new_hshift = first * width;
+	while (target > new_hshift / width + spanes - 1)
+		new_hshift += spanes * width;
+	while (target < new_hshift / width)
+		new_hshift -= spanes * width;
+	if (new_hshift < 0)
+		new_hshift = 0;
 	if (new_hshift != hshift)
 	{
 		hshift = new_hshift;
 		screen_trashed();
 	}
-	pane_ifile = curr_ifile;
-	pane_top = top;
-	pane_hshift = hshift;
-	pane_curr = target;
 	return (0);
 }
 
