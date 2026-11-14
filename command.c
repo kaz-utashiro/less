@@ -2496,25 +2496,25 @@ public void commands(void)
 			else
 				number = (shift_count > 0) ? shift_count : sc_width / 2;
 			pos_rehead(FALSE);
-			if (action == A_RSHIFT_LIMIT && counted)
+			if (action == A_RSHIFT_LIMIT && align_shift_width() > 0)
 			{
 				/*
-				 * A count of panes may go on until the last
-				 * pane is at the left edge, as the screens of
-				 * panes are laid out without the shift.  If the
-				 * last pane is on the screen already, stay.
+				 * Go on until the last pane is at the left
+				 * edge, so that the panes on the screen get
+				 * fewer to the end, and a count of panes moves
+				 * by the screens as they are laid out without
+				 * the shift.  If the shift would go past the
+				 * last pane, and it is on the screen already,
+				 * stay.
 				 */
 				int limit = align_shift_down(longest_line_width() - 1);
 				if (hshift + (int) number > limit)
 					number = (limit < hshift + sc_width) ? 0 : limit - hshift;
 			} else if (action == A_RSHIFT_LIMIT)
 			{
-				int limit = align_shift_up(longest_line_width() - sc_width);
+				int limit = longest_line_width() - sc_width;
 				if (hshift + (int) number > limit)
 					number = limit - hshift;
-				/* do not go back, if a search went past the limit */
-				if (number < 0 && align_shift_width() > 0)
-					number = 0;
 			}
 			hshift = align_shift_down(hshift + (int) number);
 			screen_trashed();

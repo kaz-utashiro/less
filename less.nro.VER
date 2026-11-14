@@ -1994,30 +1994,31 @@ or
 command, starts at the pane after (or before) the one reached by the
 last search, and shifts the pane found to the left edge of the screen,
 even if it is already visible, or if that goes past the right end of
-the lines;
-the right-limit-scroll command does not shift back from there.
+the lines.
 Only when no such pane is left does the search go on to the lines
 off the screen as usual;
 if that needs a shift, the text moves to the boundary just before
 the match, instead of using the column set by
 .BR \-\-match\-shift .
-Shifting to the right end, by the
+The right-limit-scroll command goes on until the last pane is at
+the left edge of the screen, so that the panes on the screen get
+fewer to the end.
+It does not shift when that would go past the last pane and the
+last pane is on the screen already.
+The
 .B "ESC\-}"
-command or by the right-limit-scroll command, goes to the
-nearest boundary that shows the end of the longest line,
-leaving some blank space at the right if the screen width
-is not a multiple of the shift amount.
+command goes to the nearest boundary that shows the end of the
+longest line, leaving some blank space at the right if the screen
+width is not a multiple of the shift amount.
 A number given to a left or right shift command is a count of
 shift amounts, and does not change the
 .B "\-#"
-option.
-With a number, the right-limit-scroll command moves by screens of
-that many panes as they would be laid out without the shift:
-it goes on until the last pane is at the left edge of the screen,
-and does not move when the last pane is already on the screen.
-The
+option:
+with the number of panes on the screen, the right-limit-scroll and
+left-scroll commands move by the screens as they would be laid out
+without the shift, and the
 .B "ESC\-}"
-command with a number shows the last of those screens,
+command shows the last of those screens,
 with the panes after the last one left blank.
 .IP "\fB\-\-modelines=\fP\fIn\fP"
 .RS
