@@ -1517,6 +1517,7 @@ public void commands(void)
 	int newaction;
 	int save_jump_sline;
 	int save_search_type;
+	int counted;
 	constant char *extra;
 	PARG parg;
 	IFILE old_ifile;
@@ -2487,14 +2488,26 @@ public void commands(void)
 			/*
 			 * Shift view right.
 			 */
-			if (number > 0 && align_shift_width() > 0)
+			counted = (number > 0 && align_shift_width() > 0);
+			if (counted)
 				number *= align_shift_width();
 			else if (number > 0)
 				shift_count = (int) number;
 			else
 				number = (shift_count > 0) ? shift_count : sc_width / 2;
 			pos_rehead(FALSE);
-			if (action == A_RSHIFT_LIMIT)
+			if (action == A_RSHIFT_LIMIT && counted)
+			{
+				/*
+				 * A count of panes may go on until the last
+				 * pane is at the left edge, as the screens of
+				 * panes are laid out without the shift.  If the
+				 * last pane is on the screen already, stay.
+				 */
+				int limit = align_shift_down(longest_line_width() - 1);
+				if (hshift + (int) number > limit)
+					number = (limit < hshift + sc_width) ? 0 : limit - hshift;
+			} else if (action == A_RSHIFT_LIMIT)
 			{
 				int limit = align_shift_up(longest_line_width() - sc_width);
 				if (hshift + (int) number > limit)
@@ -2521,9 +2534,18 @@ public void commands(void)
 		case A_RRSHIFT:
 			/*
 			 * Shift view right to view rightmost char on screen.
+			 * With a count of panes, go to the last screen of
+			 * that many panes, as they are laid out without the
+			 * shift.
 			 */
 			pos_rehead(FALSE);
-			hshift = rrshift();
+			if (number > 0 && align_shift_width() > 0)
+			{
+				int unit = (int) number * align_shift_width();
+				int last = align_shift_down(longest_line_width() - 1);
+				hshift = (last > 0) ? last / unit * unit : 0;
+			} else
+				hshift = rrshift();
 			screen_trashed();
 			cmd_exec();
 			break;
